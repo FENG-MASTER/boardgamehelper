@@ -18,12 +18,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify games
+        run: |
+          node --check app.js
+          node --test tests/*.test.cjs
+          npm test --prefix games/gibberers
       - uses: actions/configure-pages@v5
       - name: Prepare static site
         run: |
           mkdir -p _site/data
           cp index.html style.css app.js _site/
           cp data/words.json _site/data/
+          mkdir -p _site/games/gibberers
+          cp games/gibberers/{index.html,style.css,app.js,engine.js,sw.js,manifest.webmanifest} _site/games/gibberers/
+          cp -R games/gibberers/assets _site/games/gibberers/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

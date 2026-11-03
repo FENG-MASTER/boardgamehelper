@@ -1,6 +1,15 @@
 # 桌边 · 桌游助手
 
-可部署到 GitHub Pages 的纯静态桌游助手合集，首款游戏是「传情画意」。无需后端或 API Key，适合多人传递同一台手机或平板。
+可部署到 GitHub Pages 的纯静态线下桌游助手合集。无需后端或 API Key，适合多人共用同一台手机或平板。
+
+| 游戏 | 用途 |
+| --- | --- |
+| 传情画意 | 抽词、画画与猜词，结束后揭晓传递过程 |
+| [语言大爆炸](https://feng-master.github.io/boardgamehelper/games/gibberers/) | 3～10 人纸笔造词，辅助抽卡、启迪标记、15 轮文明发展与计分 |
+
+语言大爆炸整合自本地 `gibberers` 项目，运行资源与回归测试位于 `games/gibberers/`。保留自动存档、导入导出、撤销、私密选题、自定义知识与离线功能；进入后可通过顶部链接返回合集。需要线下准备纸笔；规则与数据口径见[使用说明](games/gibberers/README.md)。
+
+语言大爆炸首次联网打开并显示“已可离线使用”后，可离线重开该游戏；合集首页及传情画意目前需要联网。离线缓存仅管理语言大爆炸目录。游戏存档沿用独立站点的存储键，同一浏览器、同一域名可读取已有进度，请避免同时在两个站点操作同一局。
 
 ## 玩法
 
@@ -45,6 +54,8 @@ python scripts/import_words.py '/home/fengmaster/project/note_simple/生活/游�
 ```sh
 node --check app.js
 node --test tests/flow.test.cjs
+npm test --prefix games/gibberers
+node --test tests/integration.test.cjs
 ```
 
 流程测试使用最小 DOM/Canvas 替身，覆盖 1 / 2 / 3 / 4 / 20 轮结束、交接遮挡、空白提交、词库选择、轮数校验和文字转义；触屏手感及视觉布局仍需在真实浏览器中确认。
