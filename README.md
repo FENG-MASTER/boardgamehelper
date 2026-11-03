@@ -32,6 +32,8 @@ python scripts/import_words.py '/home/fengmaster/project/note_simple/生活/游�
 
 ## GitHub Pages
 
+在线访问：<https://feng-master.github.io/boardgamehelper/>。推送到 `main` 后自动更新。
+
 1. 将本目录文件提交到目标 GitHub 仓库的 `main` 分支。
 2. 在仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
 3. 推送后 `.github/workflows/pages.yml` 会自动发布；也可在 Actions 中手动运行。
