@@ -59,3 +59,17 @@ node --test tests/integration.test.cjs
 ```
 
 流程测试使用最小 DOM/Canvas 替身，覆盖 1 / 2 / 3 / 4 / 20 轮结束、交接遮挡、空白提交、词库选择、轮数校验和文字转义；触屏手感及视觉布局仍需在真实浏览器中确认。
+
+
+## 农场三姐妹
+
+入口：`games/three-sisters/`。基础游戏支持 2～4 人同屏轮流操作，以及不含农夫干扰的单人练习。骰子分组、个人与公共骰、堆肥调整、八轮事件、种植和浇水、南瓜连锁、花卉、蜂巢、果园、15 项工具、奖励及最终计分均由浏览器处理。提供自动存档、最近 80 步撤销、行动日志和原图对照。
+
+单人练习不是说明书中的正式单人模式；目前未包含农夫划掉格子的机制或天气扩充。多人使用同一设备，不提供跨设备联机。
+
+原作：Ben Pinchback / Matt Riddle，Motor City Gameworks，2021。本实现是非官方网页版。原图仅在规则中的对照链接打开，首页和游戏过程无需加载规则 PDF。
+
+- 规则数据及状态机：`games/three-sisters/engine.mjs`
+- 界面及浏览器存档：`games/three-sisters/app.mjs`
+- 规则测试：`node tests/three-sisters.test.cjs`（也随项目 `node --test tests/*.test.cjs` 执行）
+- 逐项识图记录：`games/three-sisters/MAPPING.md`

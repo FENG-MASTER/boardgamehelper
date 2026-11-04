@@ -24,6 +24,8 @@ jobs:
       - name: Verify games
         run: |
           node --check app.js
+          node --check games/three-sisters/app.mjs
+          node --check games/three-sisters/engine.mjs
           node --test tests/*.test.cjs
           npm test --prefix games/gibberers
       - uses: actions/configure-pages@v5
@@ -35,6 +37,7 @@ jobs:
           mkdir -p _site/games/gibberers
           cp games/gibberers/{index.html,style.css,app.js,engine.js,sw.js,manifest.webmanifest} _site/games/gibberers/
           cp -R games/gibberers/assets _site/games/gibberers/
+          cp -R games/three-sisters _site/games/three-sisters
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
