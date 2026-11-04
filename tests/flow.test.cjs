@@ -6,14 +6,14 @@ const vm = require('node:vm');
 function boot() {
   const elements = new Map();
   const element = id => {
-    if (!elements.has(id)) elements.set(id, {value:'', textContent:'', handlers:{}, addEventListener(event, fn){this.handlers[event] = fn;}, setAttribute(){}});
+    if (!elements.has(id)) elements.set(id, {value:'', textContent:'', handlers:{}, classList:{toggle(){}}, focus(){}, addEventListener(event, fn){this.handlers[event] = fn;}, setAttribute(){}});
     return elements.get(id);
   };
   let html = '';
   const app = {set innerHTML(value){html = value; elements.clear();}, get innerHTML(){return html;}};
   let ink = false;
   const ctx = {fillRect(){ink = false;},beginPath(){},moveTo(){},lineTo(){},stroke(){ink = true;},arc(){},fill(){ink = true;},getImageData(){return {data:ink ? [0,0,0,255] : [255,255,255,255]};}};
-  const document = {getElementById:element,querySelectorAll:()=>[],querySelector(selector){
+  const document = {body:{style:{overflow:''}},handlers:{},addEventListener(name,fn){this.handlers[name]=fn;},removeEventListener(name){delete this.handlers[name];},getElementById:element,querySelectorAll:()=>[],querySelector(selector){
     if(selector === '#app') return app;
     const el = element(selector.slice(1));
     if(selector === '#canvas') Object.assign(el, {getContext:()=>ctx,getBoundingClientRect:()=>({left:0,top:0,width:900,height:900}),setPointerCapture(){},toDataURL:()=> 'data:image/png;base64,dGVzdA=='});
@@ -23,8 +23,8 @@ function boot() {
   const context = vm.createContext({document,window:{scrollTo(){},confirm:()=>true,addEventListener(){}},fetch:async()=>({ok:true,json:async()=>JSON.parse(fs.readFileSync('data/words.json','utf8'))})});
   vm.runInContext(fs.readFileSync('app.js','utf8'),context);
   const run = code => vm.runInContext(code,context);
-  const click = id => {assert.equal(typeof element(id).handlers.click,'function',`missing click: ${id}`);element(id).handlers.click({target:element(id)});};
-  return {run,click,element,app};
+  const click = id => {assert.equal(typeof element(id).handlers.click,'function',`missing click: ${id}`);return element(id).handlers.click({target:element(id)});};
+  return {run,click,element,app,document};
 }
 for(const rounds of [1,2,3,4,20]) test(`${rounds} 轮准确交替且在目标轮结束`, () => {
   const {run,click,element,app} = boot();
@@ -72,4 +72,35 @@ test('玩家输入作为纯文本呈现',()=>{
   const {run,app}=boot();
   run(`game={round:3,rounds:3,history:[{type:'guess',text:'<img src=x onerror=alert(1)>'}]};draw()`);
   assert.ok(app.innerHTML.includes('&lt;img src=x onerror=alert(1)&gt;'));
+});
+
+test('全屏回退与原生退出保留笔迹，并清理页面状态', async () => {
+  const {run,click,element,document} = boot();
+  run("game={round:1,rounds:1,history:[{type:'word',text:'彩虹'}]};draw()");
+  element('canvas').handlers.pointerdown({pointerId:1,pointerType:'touch',clientX:25,clientY:25,preventDefault(){}});
+  element('canvas').handlers.pointerup({pointerId:1});
+  await click('fullscreen');
+  assert.equal(document.body.style.overflow,'hidden');
+  assert.equal(element('fullscreen').textContent,'退出全屏');
+  await click('fullscreen');
+  assert.equal(document.body.style.overflow,'');
+  element('drawing-board').requestFullscreen = async () => { throw Error('unsupported'); };
+  await click('fullscreen');
+  assert.equal(document.body.style.overflow,'hidden');
+  await click('fullscreen');
+  element('drawing-board').requestFullscreen = async () => {
+    document.fullscreenElement = element('drawing-board');
+    document.handlers.fullscreenchange();
+  };
+  await click('fullscreen');
+  document.fullscreenElement = null;
+  document.handlers.fullscreenchange();
+  assert.equal(document.body.style.overflow,'');
+  assert.equal(element('fullscreen').textContent,'全屏画画');
+  await click('fullscreen');
+  document.exitFullscreen = async () => { document.fullscreenElement = null; };
+  click('done');
+  assert.equal(run('screen'),'handoff','切换全屏后画作仍可提交');
+  assert.equal(document.body.style.overflow,'');
+  assert.equal(document.handlers.fullscreenchange,undefined);
 });

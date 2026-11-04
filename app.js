@@ -2,7 +2,9 @@ const app = document.querySelector('#app');
 let banks = [], selected = new Set(), rounds = 3, game = null, screen = 'home';
 const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const on = (id, event, callback) => document.getElementById(id)?.addEventListener(event, callback);
+let cleanupDrawing = null;
 function show(content, bare = false) {
+  if (cleanupDrawing) { cleanupDrawing(); cleanupDrawing = null; }
   app.innerHTML = bare ? content : `<div class="shell"><header class="topbar"><div class="brand"><span class="brand-icon">⚄</span>桌边</div><span class="tag">好朋友，好游戏，好时光</span></header>${content}<footer class="footer">围坐一起，把快乐传下去。</footer></div>`;
   window.scrollTo(0, 0);
 }
@@ -60,10 +62,52 @@ function handoff(next) {
 function draw() {
   screen = 'draw';
   const prompt = game.history.at(-1).text;
-  show(`<main class="page">${progress('画画')}<h1>轮到你的画笔了</h1><div class="prompt"><span class="hint">请画出：</span> <strong>${escape(prompt)}</strong></div><p class="hint">用图画表达，不要写出答案。画好后交给下一位猜。</p><div class="toolbar" aria-label="画笔工具"><button class="swatch" style="background:#263e35" data-color="#263e35" aria-label="墨绿色画笔" aria-pressed="true"></button><button class="swatch" style="background:#d47558" data-color="#d47558" aria-label="橙色画笔" aria-pressed="false"></button><button class="swatch" style="background:#648aaa" data-color="#648aaa" aria-label="蓝色画笔" aria-pressed="false"></button><button class="swatch" style="background:#d6ae4c" data-color="#d6ae4c" aria-label="黄色画笔" aria-pressed="false"></button><button id="eraser" class="tool" aria-pressed="false">橡皮</button><label class="hint">粗细 <input id="width" type="range" min="2" max="24" value="5" aria-label="画笔粗细" style="width:65px;vertical-align:middle"></label><button id="undo" class="tool">撤销</button><button id="clear" class="tool">清空</button></div><div class="canvas-wrap"><canvas id="canvas" width="900" height="900" aria-label="画布，请使用鼠标或触屏绘画"></canvas></div><p id="draw-error" class="error" role="alert"></p><button id="done" class="primary wide">${game.round === game.rounds ? '画好了，准备揭晓 →' : '画好了，交给下一棒 →'}</button></main>`);
+  show(`<main class="page">${progress('画画')}<h1>轮到你的画笔了</h1><div class="prompt"><span class="hint">请画出：</span> <strong>${escape(prompt)}</strong></div><p class="hint">用图画表达，不要写出答案。画好后交给下一位猜。</p><section id="drawing-board" aria-label="绘画区域"><div class="toolbar" aria-label="画笔工具">${[['黑','#000000'],['红','#e53935'],['橙','#fb8c00'],['黄','#fdd835'],['绿','#2eaf45'],['蓝','#1e88e5'],['靛','#3f3d99'],['紫','#8e24aa']].map(([name, value], index) => `<button class="swatch" style="background:${value}" data-color="${value}" title="${name}色画笔" aria-label="${name}色画笔" aria-pressed="${index === 0}"></button>`).join('')}<button id="eraser" class="tool" aria-pressed="false">橡皮</button><label class="hint">粗细 <input id="width" type="range" min="2" max="24" value="5" aria-label="画笔粗细" style="width:65px;vertical-align:middle"></label><button id="undo" class="tool">撤销</button><button id="clear" class="tool">清空</button><button id="fullscreen" class="tool" aria-pressed="false">全屏画画</button></div><div class="canvas-stage"><div class="canvas-wrap"><canvas id="canvas" width="900" height="900" aria-label="画布，请使用鼠标或触屏绘画"></canvas></div></div></section><p id="draw-error" class="error" role="alert"></p><button id="done" class="primary wide">${game.round === game.rounds ? '画好了，准备揭晓 →' : '画好了，交给下一棒 →'}</button></main>`);
   wireQuit();
   const canvas = document.querySelector('#canvas'), ctx = canvas.getContext('2d');
-  let strokes = [], active = null, pointer = null, color = '#263e35';
+  let strokes = [], active = null, pointer = null, color = '#000000';
+  const board = document.querySelector('#drawing-board');
+  const fullscreenButton = document.querySelector('#fullscreen');
+  let expanded = false, nativeFullscreen = false;
+  const previousOverflow = document.body.style.overflow;
+  function setExpanded(value) {
+    expanded = value;
+    active = null; pointer = null;
+    board.classList.toggle('drawing-fullscreen', value);
+    document.body.style.overflow = value ? 'hidden' : previousOverflow;
+    fullscreenButton.textContent = value ? '退出全屏' : '全屏画画';
+    fullscreenButton.setAttribute('aria-pressed', String(value));
+  }
+  async function exitDrawingFullscreen() {
+    setExpanded(false);
+    if (document.fullscreenElement === board) {
+      try { await document.exitFullscreen(); } catch { /* 页面内全屏已退出。 */ }
+    }
+    fullscreenButton.focus();
+  }
+  on('fullscreen', 'click', async () => {
+    if (expanded) { await exitDrawingFullscreen(); return; }
+    setExpanded(true);
+    // iPhone 等不支持元素全屏的浏览器继续使用占满视口的画板。
+    if (board.requestFullscreen) {
+      try { await board.requestFullscreen(); } catch { /* 保留页面内全屏。 */ }
+    }
+  });
+  const fullscreenChanged = () => {
+    if (document.fullscreenElement === board) nativeFullscreen = true;
+    else if (nativeFullscreen) { nativeFullscreen = false; setExpanded(false); }
+  };
+  const escapeFullscreen = event => {
+    if (event.key === 'Escape' && expanded) { event.preventDefault(); void exitDrawingFullscreen(); }
+  };
+  document.addEventListener('fullscreenchange', fullscreenChanged);
+  document.addEventListener('keydown', escapeFullscreen);
+  cleanupDrawing = () => {
+    document.removeEventListener('fullscreenchange', fullscreenChanged);
+    document.removeEventListener('keydown', escapeFullscreen);
+    document.body.style.overflow = previousOverflow;
+    if (document.fullscreenElement === board) document.exitFullscreen().catch(() => {});
+  };
   function paint(stroke) {
     ctx.strokeStyle = stroke.color; ctx.fillStyle = stroke.color; ctx.lineWidth = stroke.width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath();
