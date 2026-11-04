@@ -1,3 +1,4 @@
+import {installTutorial} from './tutorial.mjs';
 import {CITIES,NAMES,skyRows,motherEvents,failureRow,newGame,act,rooms,roomAt,placementError,availableRooms,roomValue,installCells,researchTrack,validateSave,pathIndex} from './engine.mjs';
 const KEY='table-under-falling-skies-v1',app=document.querySelector('#app');
 let state=null,selected=null,history=[],message='',storageWarning='';
@@ -35,3 +36,10 @@ app.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b
 document.querySelector('#import-file').addEventListener('change',async e=>{try{const file=e.target.files[0];if(!file)return;if(file.size>1024*1024)throw Error('存档过大');const loaded=validateSave(JSON.parse(await file.text()));if(state&&!confirm('导入将替换当前存档，继续吗？'))return;state=loaded;history=[];selected=null;save();render();notify('存档已导入');}catch(err){notify(`导入失败：${err.message}`);}finally{e.target.value='';}});
 document.querySelector('#help').onclick=()=>document.querySelector('#guide').showModal();document.querySelector('#close-guide').onclick=()=>document.querySelector('#guide').close();
 render();
+
+let tutorialReturn=null;
+const beginTutorial=installTutorial({
+ show:demo=>{if(!tutorialReturn)tutorialReturn={state,selected,setup:!!document.querySelector('.setup'),city:document.querySelector('[name=city]:checked')?.value,difficulty:document.querySelector('#difficulty')?.value};state=demo;selected=null;render();},
+ restore:()=>{if(!tutorialReturn)return;state=tutorialReturn.state;selected=tutorialReturn.selected;const previous=tutorialReturn;tutorialReturn=null;if(previous.setup){setup();document.querySelector(`[name=city][value="${previous.city}"]`).checked=true;document.querySelector('#difficulty').value=previous.difficulty;}else render();}
+});
+document.querySelector('#tutorial-start').onclick=beginTutorial;
