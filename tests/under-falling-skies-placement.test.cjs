@@ -1,0 +1,21 @@
+const test=require('node:test');const assert=require('node:assert/strict');
+const modules=Promise.all([import('../games/under-falling-skies/engine.mjs'),import('../games/under-falling-skies/placement-preview.mjs')]);
+test('放置预览不改变状态和随机数，白骰确认与直接行动一致',async()=>{
+ const [e,p]=await modules,s=e.newGame('roswell',45);s.dice[3].value=4;const before=structuredClone(s),a={type:'place',id:3,cell:'1-1'};
+ const preview=p.placementPreview(s,a);assert.deepEqual(s,before);assert.match(preview.immediate.join(''),/剩余 4 颗/);assert.match(preview.later.join(''),/4 研究点/);assert.match(preview.later.join(''),/前进 2 格/);
+ assert.deepEqual(e.act(s,a),e.act(before,a));
+});
+test('区分隧道、挖掘、大房间未填满和防空塔',async()=>{const [e,p]=await modules;
+ const s=e.newGame();s.dice[0].value=4;
+ const preview=cell=>p.placementPreview(s,{type:'place',id:0,cell});
+ assert.match(preview('1-2').later.join(''),/不会发电、研究或推进阴影/);
+ assert.match(preview('2-2').later.join(''),/向前挖掘 2 格/);
+ assert.match(preview('2-2').later.join(''),/支付 1 能源/);
+ assert.match(preview('1-3').later.join(''),/还缺 1 颗/);
+ assert.match(preview('0-0').immediate.join(''),/从 4 减为 3/);
+});
+test('确认前提示碰撞、母舰下降与立即失败',async()=>{const [e,p]=await modules;const s=e.newGame();s.damage=6;s.ships=[{id:0,color:'purple',row:15,col:0}];s.dice[0].value=2;
+ const fatal=p.placementPreview(s,{type:'place',id:0,cell:'1-0'});assert.equal(fatal.fatal,true);assert.match(fatal.immediate.join(''),/损伤 \+1/);assert.match(fatal.later.join(''),/不再执行重掷/);
+ const t=e.newGame();t.dice[0].value=3;const m=p.placementPreview(t,{type:'place',id:0,cell:'1-0'});assert.match(m.immediate.join(''),/母舰下降 1 行/);
+});
+test('机器人安装预览不会移动敌舰或提前启用',async()=>{const [e,p]=await modules;const s=e.newGame('new-york');s.phase='resolve';s.pending={type:'robot',value:3};const old=structuredClone(s);const v=p.placementPreview(s,{type:'install',cell:'0-0'});assert.match(v.later.join(''),/本轮不能使用/);assert.deepEqual(s,old);});
