@@ -73,3 +73,11 @@ node --test tests/integration.test.cjs
 - 界面及浏览器存档：`games/three-sisters/app.mjs`
 - 规则测试：`node tests/three-sisters.test.cjs`（也随项目 `node --test tests/*.test.cjs` 执行）
 - 逐项识图记录：`games/three-sisters/MAPPING.md`
+
+## 坠空之下
+
+入口：`games/under-falling-skies/`。单人基础游戏支持罗斯维尔、纽约、华盛顿三个正常面城市和威胁 0～4。包含掷骰与白骰重掷、敌舰移动、基地设施自由结算、能源与研究、蛇形挖掘、机器人、母舰事件、敌舰重生选择和胜负结算。支持自动存档、最近 80 步撤销、JSON 导入导出、手机布局及原图对照。
+
+基础模式可重复游玩。原版有威胁 0～4；四块高难度天空背面已接入，每级随机翻转一块天空板；城市被毁面尚未开放。战役第 1 章原图可在 `games/under-falling-skies/campaign.html` 预览，尚未实现战役自动结算。规则与图片映射见 `games/under-falling-skies/MAPPING.md`。非官方实现，原作 Tomáš Uhlíř / Czech Games Edition。
+
+本地预览：<http://127.0.0.1:8765/games/under-falling-skies/>。规则测试：`node --test tests/under-falling-skies.test.cjs`。

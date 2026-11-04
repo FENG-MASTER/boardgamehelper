@@ -26,6 +26,8 @@ jobs:
           node --check app.js
           node --check games/three-sisters/app.mjs
           node --check games/three-sisters/engine.mjs
+          node --check games/under-falling-skies/engine.mjs
+          node --check games/under-falling-skies/app.mjs
           node --test tests/*.test.cjs
           npm test --prefix games/gibberers
       - uses: actions/configure-pages@v5
@@ -38,6 +40,7 @@ jobs:
           cp games/gibberers/{index.html,style.css,app.js,engine.js,sw.js,manifest.webmanifest} _site/games/gibberers/
           cp -R games/gibberers/assets _site/games/gibberers/
           cp -R games/three-sisters _site/games/three-sisters
+          cp -R games/under-falling-skies _site/games/under-falling-skies
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
