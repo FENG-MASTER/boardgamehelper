@@ -3,7 +3,7 @@ import {automatedMove,deliver,mapTask,prepareBuild} from './map-rules.mjs';
 import {PORTS,LAND_NODES,SEA_NODES} from './map-data.mjs';
 import {DISKS} from './rule-data.mjs';
 import {settleTolls} from './tolls.mjs';
-import {setupSarah,beginSarah,sarahAction,sarahTotal} from './sarah-runtime.mjs';
+import {setupSarah,beginSarah,sarahAction,sarahTotal,settleSarah} from './sarah-runtime.mjs';
 import {cardInfo,NEUTRAL,WORKERS,SCORE_LABELS} from './data.mjs';
 export const VERSION=1;
 const clone=value=>structuredClone(value);
@@ -59,6 +59,10 @@ export function createGame(catalog,{players=1,bonusGroups=[1,2,3,4],names=[],mod
  log(s,mode==='sarah'?'官方莎拉规则辅助单人对局已开始':players===1?'基础规则单人练习已开始（无莎拉对手）':`${players} 人同屏对局已开始`);return s;
 }
 export function reduce(state,action,catalog,random=Math.random){
+ const s=reduceOnce(state,action,catalog,random);
+ return settleSarah(s,catalog,{putTile,refillForecast});
+}
+function reduceOnce(state,action,catalog,random=Math.random){
  const s=clone(state),p=current(s),a=action;assert(s.phase!=='ended'||['score','reopen'].includes(a.type),'对局已结束');
  if(s.rulesVersion&&!p.isSarah){
   const context={draw:(state,p,n)=>draw(state,p,n,random),mapTask};

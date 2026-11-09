@@ -125,3 +125,18 @@ export function sarahAction(s,a,catalog,context){const ai=s.sarah,p=actor(s);che
  throw new Error('未知莎拉操作');
 }
 export function sarahTotal(s,p,catalog,values){const scores=[...values];scores[0]=0;scores[8]=0;scores[9]=0;scores[1]+=p.built.filter(t=>t.type==='building').reduce((v,t)=>v+buildingData(catalog,t.def,t.side).vp,0);scores[7]+=p.objectives.reduce((v,c)=>v+objectivePoints(catalog,c.def),0);scores[10]+=p.workers.filter(n=>n>=5).length*4;return {values:scores,total:scores.reduce((a,b)=>a+b,0)};}
+
+// Resolve only forced choices; a genuine tie remains a player decision.
+export function settleSarah(s,catalog,context){
+ if(!s.rulesVersion)return s;
+ for(let guard=0;guard<100;guard++){
+  if(s.phase!=='sarah'||s.active!==1)return s;
+  const ai=s.sarah;let action;
+  if(ai.stage==='move'){const routes=sarahRoutes(s,catalog);if(routes.length===1)action={type:'sarahAutoMove',path:routes[0].path.join('|')};}
+  else if(['choice','build'].includes(ai.stage)&&ai.choices.length===1)action={type:'sarahChoice',key:ai.choices[0].key};
+  else if(ai.stage==='port'){const ports=sarahPorts(s);if(ports.length===1)action={type:'sarahAutoPort',port:ports[0].id};}
+  if(!action)return s;
+  sarahAction(s,action,catalog,context);
+ }
+ throw new Error('莎拉自动结算超过安全上限');
+}
