@@ -9,5 +9,31 @@ test('三姐妹：公共骰必须选最小剩余点数，每人独立调整',asy
 test('三姐妹：蜂巢分支锁定、桃子与工具奖励叠加',async()=>{let {E,s}=await setup();s.queue=[{type:'hive'}];assert.throws(()=>E.resolve(s,{kind:'hive',i:1}));const p=s.players[0];p.hive[0]=5;E.resolve(s,{kind:'hive',i:1});assert.equal(p.goods,2);p.flowers[0]=4;p.tools[1]=2;p.fruit[1]=1;s.queue=[{type:'fruit'}];E.resolve(s,{kind:'fruit',i:1});assert.equal(p.goods,6);assert.ok(s.queue.some(t=>t.type==='water'));assert.ok(s.queue.some(t=>t.type==='bonus'));});
 test('三姐妹：市集仅取最高档，工具加成与货物不消耗',async()=>{for(const [g,flowers,bonus,fruit,compost] of [[0,0,0,0,1],[4,1,0,0,1],[20,1,0,1,0],[35,2,0,0,1],[50,2,0,1,0],[70,2,1,0,0]]){const {E,s,p}=await setup();p.goods=g;s.queue=[{type:'track',pos:6,z:1}];E.resolve(s,{kind:'track'});assert.equal(p.goods,g);for(const [kind,n]of [['flower',flowers],['bonus',bonus],['fruit',fruit]])assert.equal(s.queue.filter(t=>t.type===kind).length,n);assert.equal(p.compost,compost);}});
 test('三姐妹：最终计分采用累计奖励、环形南瓜链',async()=>{const {E,p}=await setup();p.corn[0][0]=4;p.beans[0][0]=2;p.fruit=[8,8,7,9];p.hive=[5,4,4,4];p.flowers=[6,6,6,6,6,6];p.tools[3]=3;p.tools[13]=3;p.pumpkins[11]=3;p.pumpkins[0]=1;p.pumpkins[1]=4;assert.deepEqual(E.score(p).parts,[4,54,30,38,13]);assert.equal(E.score(p).total,139);});
-test('三姐妹：1～4 人完整八轮均可完成且事件数正确',async()=>{const E=await engine;for(let n=1;n<=4;n++){const s=E.createGame(n);let operations=0;while(s.phase!=='over'&&operations++<4000){if(s.queue.length){const t=s.queue[0];if(['water','garden'].includes(t.type))E.resolve(s,{kind:'water',z:t.z??1});else if(t.type==='track')E.resolve(s,{kind:'track'});else E.skip(s);}else if(s.phase==='draft'){const d=s.dice.filter(d=>!d.used).sort((a,b)=>a.v-b.v)[0];E.chooseDie(s,d.id,d.v);}else if(s.phase==='commonAdjust')E.common(s,s.commonDie.v);else E.advance(s);}assert.equal(s.phase,'over');assert.equal(s.round,8);assert.ok(operations<4000);assert.equal(s.players.length,n);}});
+test('三姐妹：1～4 人完整八轮均可完成且事件数正确',async()=>{const E=await engine;for(let n=1;n<=4;n++){const s=E.createGame(n);let operations=0;while(s.phase!=='over'&&operations++<4000){if(s.phase==='edith'){E.takeEdithDie(s);}else if(s.queue.length){const t=s.queue[0];if(t.type==='edithCrop')E.chooseEdithCrop(s,t.indices[0]);else if(['water','garden'].includes(t.type))E.resolve(s,{kind:'water',z:t.z??1});else if(t.type==='track')E.resolve(s,{kind:'track'});else E.skip(s);}else if(s.phase==='draft'){const d=s.dice.filter(d=>!d.used).sort((a,b)=>a.v-b.v)[0];E.chooseDie(s,d.id,d.v);}else if(s.phase==='commonAdjust')E.common(s,s.commonDie.v);else E.advance(s);}assert.equal(s.phase,'over');assert.equal(s.round,8);assert.ok(operations<4000);assert.equal(s.players.length,n);}});
 test('三姐妹：收获奖励必须先于后续园子或行动轨，同批奖励可选择顺序',async()=>{const {E,s,p}=await setup();p.goods=4;p.fruit[3]=0;s.queue=[{type:'fruit'},{type:'track',pos:2,z:1}];E.resolve(s,{kind:'fruit',i:3});assert.equal(s.queue[0].type,'bonus');assert.equal(s.queue[1].type,'track');p.flowers[1]=0;p.tools[8]=1;s.queue=[{type:'track',pos:6,z:1}];p.goods=70;E.resolve(s,{kind:'track'});E.prioritize(s,2);assert.equal(s.queue[0].type,'bonus');});
+test('三姐妹：南瓜 D 两方格加一圆格，种植后需浇灌两次才收获',async()=>{
+ const {E,s,p}=await setup();
+ s.queue=[{type:'plant',z:3}];E.resolve(s,{kind:'plant',crops:['pumpkins:3']});
+ assert.equal(p.pumpkins[3],1);assert.equal(p.goods,0);
+ s.queue=[{type:'water',z:3}];E.resolve(s,{kind:'water'});
+ assert.equal(p.pumpkins[3],2);assert.equal(p.goods,0);assert.equal(p.harvest3,undefined);
+ s.queue=[{type:'water',z:3}];E.resolve(s,{kind:'water'});
+ assert.equal(p.pumpkins[3],3);assert.equal(p.goods,2);assert.equal(p.harvest3,true);
+ s.queue=[{type:'water',z:3}];E.resolve(s,{kind:'water'});assert.equal(p.goods,2);
+});
+test('三姐妹：原图 A 和 G 的单个圆格在种植时收获一次',async()=>{
+ for(const [index,z]of [[0,1],[6,4]]){
+  const {E,s,p}=await setup();s.queue=[{type:'plant',z}];
+  E.resolve(s,{kind:'plant',crops:[`pumpkins:${index}`]});
+  assert.equal(p.goods,1);assert.equal(p['harvest'+index],true);
+  s.queue=[{type:'water',z}];E.resolve(s,{kind:'water'});assert.equal(p.goods,1);
+ }
+});
+test('三姐妹：旧局已收获的 D 保留奖励及南瓜链，未收获的仍需长到三格',async()=>{
+ const {E,s,p}=await setup();p.pumpkins[2]=2;p.pumpkins[3]=2;p.harvest2=true;p.harvest3=true;p.edge2=true;p.goods=3;p.tools[13]=3;
+ assert.equal(E.correctLegacyPumpkins(s),true);assert.equal(p.pumpkins[3],3);assert.equal(p.goods,3);assert.equal(E.score(p).parts[4],2);
+ assert.equal(E.correctLegacyPumpkins(s),false);
+ s.queue=[{type:'water',z:3}];E.resolve(s,{kind:'water'});assert.equal(p.goods,3);assert.equal(s.queue.length,0);
+ const fresh=E.createGame(2);fresh.players[0].pumpkins[3]=1;
+ assert.equal(E.correctLegacyPumpkins(fresh),false);assert.equal(fresh.players[0].pumpkins[3],1);
+});
