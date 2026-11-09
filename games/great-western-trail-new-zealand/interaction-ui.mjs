@@ -1,4 +1,5 @@
 import {buildingTargets,sailingTargets,matchingSheepOffers} from './interaction-options.mjs';
+import {icon} from './icons.mjs';
 import {availableDisks} from './automation.mjs';
 import {deliveryOptions} from './map-rules.mjs';
 import {cardInfo,WORKER_NAMES} from './data.mjs';
@@ -9,8 +10,13 @@ export function interactionDialog(s,catalog,key,h){
  const task=s.ruleTasks?.[0],p=s.players[s.active],{showDialog,formDialog,modal,dispatch,pickMap}=h;
  if(!s.rulesVersion||p.isSarah)return false;
  if(key==='delivery'||key==='task'&&task?.kind==='woolDelivery'){
-  const wool=key==='task',targets=deliveryOptions(s,wool).filter(t=>t.value<=(wool?task.value:s.deliveryValue)).map(t=>({...t,label:t.label||`羊毛贸易站 ${t.value}`}));
-  pickMap('点击地图上的贸易站',targets,t=>formDialog(t.label,`<p>运费 ${t.fee} 元 · ${t.points} 分。确认后运送并解锁圆片能力。</p>`,diskField(s,t.black),d=>dispatch({type:wool?'ruleTask':'autoDelivery',station:t.id,disk:d.get('disk')})));return true;
+  const wool=key==='task',value=wool?task.value:s.deliveryValue;
+  const targets=deliveryOptions(s,wool).filter(t=>t.value<=value).map(t=>({...t,marker:`≥${t.value}`,label:`${t.id.startsWith('local')?'本地':t.id.startsWith('wool')?'羊毛':'海外'}贸易站 · 门槛 ${t.value}`}));
+  pickMap(`本次${wool?'羊毛':'育种'}价值 ${value} · 点击贸易站`,targets,t=>{
+   const reward=t.id==='local0'?'获得 6 元':t.id==='local1'?'获得 2 元':({ferry:'获得渡轮卡（牌库有牌时）',objective:'领取目标卡（有牌时必须领取）',romney:'获得罗姆尼羊卡（牌库有牌时）'}[t.group]||'无即时奖励');
+   const stats=[['sheep',`${wool?'羊毛':'育种'}门槛`,`≥ ${t.value}`,`本次 ${value} · 已满足`],['coins','支付运费',`${t.fee} 元`,'另付圆片解锁费用'],['star','终局得分',`${t.points} 分`,'游戏结束时计入']];
+   formDialog(t.label,`<div class="trade-stats">${stats.map(([i,label,n,note])=>`<div>${icon(i)}<span>${label}</span><strong>${n}</strong><small>${note}</small></div>`).join('')}</div><p class="trade-reward">${icon('hand')} ${reward}</p><p>${t.id.startsWith('foreign')?'此海外站已有你的仓库，可以运送。':'此站不需要先建仓库。'}${t.repeat?'允许重复运送。':'每位玩家只能运送一次。'}</p><p>从玩家板取下一枚圆片放到此站，同时解锁它的能力。${t.black?'此站接受黑边或白边圆片。':'优先使用白边圆片；白边用尽后可用黑边。'}</p>${['local1','local3'].includes(t.id)?'<p>连接计分：本地 1 和 3 都运送过时，额外扣 3 分。</p>':''}`,diskField(s,t.black),d=>dispatch({type:wool?'ruleTask':'autoDelivery',station:t.id,disk:d.get('disk')}),'确认运送');
+  },'高亮 ≥ 数字是价值门槛；点选查看运费与奖励。海外站须先建仓库；已运送且不可重复的站点不会高亮。');return true;
  }
  if(key!=='task')return false;
  if(['build','cardReplace'].includes(task?.kind)){

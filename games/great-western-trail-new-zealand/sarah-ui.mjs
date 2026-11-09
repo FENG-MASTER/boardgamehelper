@@ -1,3 +1,4 @@
+import {sarahArtwork} from './original-ui.mjs';
 import {sarahRoutes,sarahPorts} from './sarah-map.mjs';
 import {SARAH_CARDS,ACTION_NAMES} from './sarah-cards.mjs';
 import {SARAH_DIFFICULTIES,SARAH_WORKERS} from './sarah.mjs';
@@ -11,5 +12,5 @@ export function sarahPanel(s,catalog,{escape,button}){
  if(s.rulesVersion&&ai.stage==='move')body=`<h3>莎拉移动</h3><p>已依最少步数、最低总费用、最低玩家收入筛选路线。</p>${sarahRoutes(s,catalog).map(r=>`<button class="full" data-sarah-route="${escape(r.path.join('|'))}">${escape(r.label)}</button>`).join('')}`;
  if(s.rulesVersion&&ai.stage==='port')body=`<h3>中型港口奖励</h3>${sarahPorts(s).map(p=>`<button data-sarah-port="${p.id}">${p.label}</button>`).join('')}`;
  if(ai.stage==='done')body=`<h3>莎拉的行动已结算</h3><p>${ai.atWellington?'已先完成威灵顿，再执行卡面行动；结束后返回起点。':'莎拉停留地点不影响卡面行动。'}${s.final?'当前处于最后一轮，不再补牌。':''}</p>${button('sarahEnd','结束莎拉回合 →',false,'primary full')}`;
- return `<div class="sarah-heading"><span class="eyebrow">WOMAN OF GREAT CHARACTER</span><h2>莎拉 · ${SARAH_DIFFICULTIES[ai.difficulty].name}</h2><span class="chip">专精：${WORKER_NAMES[SARAH_WORKERS.indexOf(ai.specialization)]}</span><span class="chip">开拓者 ${p.pioneer}</span></div><img class="sarah-card" src="${c.image}" alt="莎拉行动卡 ${ai.card}"><p class="muted">行动卡 #${ai.card} · 牌库 ${ai.deck.length} · 弃牌 ${ai.discard.length}</p>${body}<div class="notice">使用官方卡面与单人规则。${s.rulesVersion?'市场、路径费用、合法建造落位和港口优先级自动计算，并列选项由你选择。':'市场与卡牌结算自动处理，路径、建造落位和港口仍需人工确认。'}</div>`;
+ return `<div class="sarah-heading"><span class="eyebrow">WOMAN OF GREAT CHARACTER</span><h2>莎拉 · ${SARAH_DIFFICULTIES[ai.difficulty].name}</h2><span class="chip">专精：${WORKER_NAMES[SARAH_WORKERS.indexOf(ai.specialization)]}</span><span class="chip">开拓者 ${p.pioneer}</span></div><img class="sarah-card" src="${sarahArtwork(c,ai.specialization)}" alt="莎拉行动卡 ${ai.card}"><p class="muted">行动卡 #${ai.card} · 牌库 ${ai.deck.length} · 弃牌 ${ai.discard.length}</p>${body}<div class="notice">独立文字卡面，按官方单人规则结算。${s.rulesVersion?'市场、路径费用、合法建造落位和港口优先级自动计算，并列选项由你选择。':'市场与卡牌结算自动处理，路径、建造落位和港口仍需人工确认。'}</div>`;
 }
